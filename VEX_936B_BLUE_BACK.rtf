@@ -1,0 +1,393 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1561\cocoasubrtf200
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #include "robot-config.h"\
+/*+++++++++++++++++++++++++++++++++++++++++++++| Notes |++++++++++++++++++++++++++++++++++++++++++++++\
+Tank Control \
+This program instructs your robot to use remote control values to move the robot. \
+\
+Robot Configuration:\
+[Smart Port]    [Name]        [Type]           [Description]        [Reversed]   \
+Motor Port 8    LeftMotor     V5 Smart Motor   Left side motor      false\
+Motor Port 2    RightMotor    V5 Smart Motor   Right side motor     true\
+Motor Port 9    Pusher        V5 Smart Motor   Pusher to Flywheel   false\
+Motor Port 11   IntakeMotor   V5 Smart Motor   Intake motor         false\
+Motor Port 10   RightFWMotor  V5 Smart Motor   Right Flywheel motor false\
+Motor Port 1    LeftFWMotor   V5 Smart Motor   Left Flywheel motor  true\
+Motor Port 4    Ram           V5 Smart Motor   Descorer Motor       false\
+Motor Port 6    Flippy        V5 Smart Motor   Cap Flipper          false \
+\
+----------------------------------------------------------------------------------------------------*/          \
+    void turnBase(int rotateTarget)\{\
+        LeftMotor.startRotateFor(rotateTarget,vex::rotationUnits::deg,200,vex::velocityUnits::pct);\
+        RightMotor.rotateFor(-rotateTarget,vex::rotationUnits::deg,200,vex::velocityUnits::pct);\
+    \}\
+    void moveBase(int Distance, int Speed)\{\
+        LeftMotor.startRotateFor(-Distance,vex::rotationUnits::deg,Speed,vex::velocityUnits::pct);\
+        RightMotor.rotateFor(-Distance,vex::rotationUnits::deg,Speed,vex::velocityUnits::pct);\
+    \}\
+    void takeBall(int rotateAmount)\{\
+        IntakeMotor.rotateFor(rotateAmount,vex::rotationUnits::deg,200,vex::velocityUnits::pct);\
+    \}\
+    void pushBall(int pushAmount)\{\
+        Pusher.rotateFor(-pushAmount,vex::rotationUnits::deg,200,vex::velocityUnits::pct);\
+    \}\
+    //prints velocity of flywheel to controller\
+    void flywheelStatDisp()\{\
+        Brain.Screen.setFont(vex::fontType::mono40);\
+        Controller2.Screen.clearLine(3);\
+        Controller2.Screen.setCursor(3,0);\
+        Controller2.Screen.print("RPM:%f",RightFWMotor.velocity(vex::velocityUnits::rpm));\
+        Controller2.Screen.print("RPM:%f",LeftFWMotor.velocity(vex::velocityUnits::rpm));\
+    \}\
+    \
+\
+int main() \{\
+    \
+\
+    //Display that the program has started to the screen.\
+    Brain.Screen.print("936B Program Started");\
+    Controller1.Screen.print("Ready to Rumble");\
+    \
+    //Use these variables to set the speed of the arm and claw.\
+    int armSpeedPCT = 600;\
+    int clawSpeedPCT = 600;\
+    int pushSpeed = 600;\
+\
+    \
+    //Create an infinite loop so that the program can pull remote control values every iteration.\
+    //This loop causes the program to run forever.\
+    while(1) \{\
+        flywheelStatDisp();\
+        //Drive Control\
+        //Set the left and right motor to spin forward using the controller Axis values as the velocity value.\
+        LeftMotor.spin(vex::directionType::rev, Controller1.Axis2.value(), vex::velocityUnits::pct);\
+        RightMotor.spin(vex::directionType::rev, Controller1.Axis3.value(), vex::velocityUnits::pct);\
+        if(Controller1.Axis3.value() == 0 && Controller1.Axis2.value() == 0)\{\
+            LeftMotor.stop(vex::brakeType::brake);   \
+            RightMotor.stop(vex::brakeType::brake);\
+        \}\
+\
+        //Flywheel Control\
+        if(Controller2.ButtonR1.pressing()) \{ //If the R1 button is pressed...\
+            //...Spin the claw motor forward.\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            \
+        \}\
+        else if(Controller2.ButtonL1.pressing())\{\
+            RightFWMotor.spin(vex::directionType::fwd, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::fwd, clawSpeedPCT, vex::velocityUnits::rpm);\
+        \}\
+        else if(Controller1.ButtonL2.pressing())\{\
+            Pusher.spin(vex::directionType::fwd, pushSpeed, vex::velocityUnits::rpm);\
+        \}\
+       \
+        else \{ //If the A or Y button are not pressed...\
+            //...Stop the claw motor. \
+            RightFWMotor.stop(vex::brakeType::brake);  \
+            LeftFWMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+        \}\
+            if(Controller1.ButtonL1.pressing())\{\
+            Pusher.spin(vex::directionType::rev, pushSpeed, vex::velocityUnits::rpm);\
+        \}\
+        \
+        //Intake Control\
+        if(Controller1.ButtonX.pressing()) \{ //If the X button is pressed...\
+            //...Spin the claw motor forward.\
+            IntakeMotor.spin(vex::directionType::fwd, clawSpeedPCT, vex::velocityUnits::rpm);\
+        \}\
+        else \{ //If the A or Y button are not pressed...\
+            //...Stop the claw motor. \
+            IntakeMotor.stop(vex::brakeType::brake);       \
+        \}\
+        \
+        if(Controller1.ButtonY.pressing())\{\
+            IntakeMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+        \}\
+        /*\
+        else \{ //If the A or Y button are not pressed...\
+            //...Stop the claw motor. \
+            IntakeMotor.stop(vex::brakeType::brake);       \
+        \}  \
+        \
+        */\
+        \
+        //Flippy Control\
+        if(Controller1.ButtonDown.pressing())\{ //If button "UP" is pressed...\
+            Flippy.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+        \}\
+        else if(Controller1.ButtonUp.pressing())\{ //If button "DOWN" is pressed...\
+            Flippy.spin(vex::directionType::fwd, clawSpeedPCT, vex::velocityUnits::rpm);\
+        \}\
+        else\{\
+            Flippy.stop(vex::brakeType::brake);\
+        \}\
+        if (Controller1.ButtonRight.pressing())\{\
+            Ram.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+        \}\
+        else if(Controller1.ButtonLeft.pressing())\{\
+         Ram.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);   \
+        \}\
+        else\{\
+            Ram.stop(vex::brakeType::brake);\
+        \}\
+        \
+        if(Controller1.ButtonB.pressing())\{ //auto\
+            //THIS IS FOR THE BLUE SIDE!!!!\
+            //start flywheel\
+            LeftMotor.setStopping(vex::brakeType::coast);\
+            RightMotor.setStopping(vex::brakeType::coast);\
+         \
+            //move forward\
+            moveBase(1090, 80);\
+            \
+            // pick up the ball\
+            IntakeMotor.spin(vex::directionType::fwd, 180, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1300);\
+            Pusher.stop(vex::brakeType::brake);\
+            IntakeMotor.stop(vex::brakeType::brake);\
+            \
+            //move back\
+            moveBase(-1090, 150);\
+            \
+            \
+            turnBase(325);\
+            \
+            moveBase(-900,150);\
+            turnBase(-280);\
+            moveBase(3000, 200);\
+            \
+            /*\
+            //turn back\
+            turnBase(235);\
+            \
+            Flippy.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            vex::task::sleep(900);\
+            Flippy.stop(vex::brakeType::brake);\
+            \
+            //move to flag\
+            moveBase(200, 150);\
+            \
+            Flippy.spin(vex::directionType::fwd, clawSpeedPCT, vex::velocityUnits::rpm);\
+            vex::task::sleep(900);\
+            Flippy.stop(vex::brakeType::brake);\
+            */\
+            /*\
+            //start flywheel\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(2000);\
+            \
+            //hit the top flag\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(900);\
+            RightFWMotor.stop(vex::brakeType::brake);\
+            LeftFWMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            //turn anti-clockwise towards the ball\
+            RightMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(545);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //go to the ball\
+            RightMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            // pick up the ball\
+            IntakeMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1400);\
+            IntakeMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            \
+            //go back to alliance square\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //turn clockwise towards the flag\
+            LeftMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(500);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            RightMotor.stop(vex::brakeType::brake);\
+            \
+            //start the flywheel motors\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            vex::task::sleep(500);\
+            \
+            //move slightly forward while spinning flywheel motors\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(700);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            //shoot the middle flag\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(500);\
+            RightFWMotor.stop(vex::brakeType::brake);\
+            LeftFWMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //hit bottom flag\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 199, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            \
+            //THIS IS FOR THE RED SIDE!!!!!\
+            //start flywheel\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(2000);\
+            \
+            //hit the top flag\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(900);\
+            RightFWMotor.stop(vex::brakeType::brake);\
+            LeftFWMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            //turn clockwise towards the ball\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(510);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //go to the ball\
+            RightMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            // pick up the ball\
+            IntakeMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1400);\
+            IntakeMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            \
+            //go back to alliance square\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //turn anti-clockwise towards the flag\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            RightFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(530);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            RightMotor.stop(vex::brakeType::brake);\
+            \
+            //start the flywheel motors\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            vex::task::sleep(500);\
+            \
+            //move slightly forward while spinning flywheel motors\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(710);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+            \
+            //shoot the middle flag\
+            RightFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            LeftFWMotor.spin(vex::directionType::rev, clawSpeedPCT, vex::velocityUnits::rpm);\
+            Pusher.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(500);\
+            RightFWMotor.stop(vex::brakeType::brake);\
+            LeftFWMotor.stop(vex::brakeType::brake);\
+            Pusher.stop(vex::brakeType::brake);\
+            \
+            vex::task::sleep(100);\
+            \
+            //hit bottom flag\
+            RightMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            LeftMotor.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);\
+            vex::task::sleep(1000);\
+            RightMotor.stop(vex::brakeType::brake);\
+            LeftMotor.stop(vex::brakeType::brake);\
+           */\
+        \}\
+        \
+        \
+		vex::task::sleep(20); //Sleep the task for a short amount of time to prevent wasted resources.\
+    \}\
+\
+\}}
